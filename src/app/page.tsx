@@ -1,69 +1,85 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React from "react";
+import { LandingNavbar } from "@/components/landing/Navbar";
+import { Hero } from "@/components/landing/Hero";
+import { TradeTicker, WorkshopStory } from "@/components/landing/WorkshopStory";
+import { LiveTelemetry } from "@/components/landing/LiveTelemetry";
+import { VehicleTracker } from "@/components/landing/VehicleTracker";
+import { SymptomChecker } from "@/components/landing/SymptomChecker";
+import { Services } from "@/components/landing/Services";
+import { ServiceCalculator } from "@/components/landing/ServiceCalculator";
+import { ComparisonSection } from "@/components/landing/ComparisonSection";
+import { AppointmentBooking } from "@/components/landing/AppointmentBooking";
+import { Testimonials } from "@/components/landing/Testimonials";
+import { WorkshopInfo } from "@/components/landing/WorkshopInfo";
+import { LandingFooter } from "@/components/landing/Footer";
+import { useWorkshop } from "@/context/WorkshopContext";
+import { Phone } from "lucide-react";
+
+export default function HomePage() {
+  const { settings } = useWorkshop();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="landing min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950">
+      {/* Navigation */}
+      <LandingNavbar />
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <Hero />
+
+        <TradeTicker />
+
+        {/* Quiénes somos, con fotos del taller */}
+        <WorkshopStory />
+
+        {/* Telemetría en Vivo de Bahías del Taller */}
+        <LiveTelemetry />
+
+        {/* Feature Estrella: Consulta en Vivo de Reparación por Patente */}
+        <VehicleTracker />
+
+        {/* Diagnosticador Interactivo de Síntomas & Fallas */}
+        <SymptomChecker />
+
+        {/* Servicios & Especialidades */}
+        <Services />
+
+        {/* Cotizador Interactivo de Mano de Obra y Repuestos */}
+        <ServiceCalculator />
+
+        {/* Comparativa Taller Tradicional vs ProTech */}
+        <ComparisonSection />
+
+        {/* Formulario de Reserva de Turno Online */}
+        <AppointmentBooking />
+
+        {/* Testimonios */}
+        <Testimonials />
+
+        {/* Ubicación & Horarios */}
+        <WorkshopInfo />
       </main>
+
+      {/* Footer */}
+      <LandingFooter />
+
+      {/* Floating WhatsApp Action Button */}
+      <a
+        href={`https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+          "¡Hola! Quería consultar por un presupuesto / service para mi auto."
+        )}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-[#25d366] hover:bg-[#1fbd5a] text-white shadow-xl shadow-black/40 transition-all hover:scale-110 active:scale-95 flex items-center justify-center group"
+        title="Consultar por WhatsApp"
+      >
+        <Phone className="w-6 h-6 stroke-[2.2]" />
+        <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 ease-in-out font-bold text-xs pl-0 group-hover:pl-2">
+          WhatsApp Taller
+        </span>
+      </a>
     </div>
   );
 }
