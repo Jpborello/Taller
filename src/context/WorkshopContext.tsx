@@ -10,6 +10,7 @@ import {
   WorkshopSettings,
   OrderStatus,
   AppointmentStatus,
+  BudgetApprovalChannel,
 } from "@/types";
 import {
   SEED_WORKSHOP_SETTINGS,
@@ -19,6 +20,7 @@ import {
   SEED_WORK_ORDERS,
   SEED_APPOINTMENTS,
 } from "@/data/seedData";
+import { isBudgetApproved } from "@/lib/formatters";
 
 interface WorkshopContextType {
   settings: WorkshopSettings;
@@ -43,6 +45,7 @@ interface WorkshopContextType {
   addWorkOrder: (order: Omit<WorkOrder, "id" | "orderNumber">) => WorkOrder;
   updateWorkOrder: (order: WorkOrder) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  approveBudget: (orderId: string, via: BudgetApprovalChannel) => void;
   deleteWorkOrder: (id: string) => void;
 
   // Inventario & Stock
@@ -71,7 +74,7 @@ const STORAGE_KEYS = {
   SETTINGS: "protech_workshop_settings_v2",
   CLIENTS: "protech_clients_v1",
   VEHICLES: "protech_vehicles_v1",
-  ORDERS: "protech_orders_v1",
+  ORDERS: "protech_orders_v2", // v2: estados de presupuesto enviado / aprobado
   INVENTORY: "protech_inventory_v1",
   APPOINTMENTS: "protech_appointments_v1",
 };
@@ -241,6 +244,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
           if (status === "delivered" && !o.deliveryDate) {
             updates.deliveryDate = new Date().toISOString();
           }
+          if (status === "budget_sent") {
+            updates.budgetSentDate = new Date().toISOString();
+          }
+          if (status === "approved" && !o.approvedDate) {
+            updates.approvedDate = new Date().toISOString();
+            updates.approvedVia = "En persona";
+          }
+          // Back before approval (e.g. budget re-sent): the old approval no longer applies
+          if (!isBudgetApproved(status)) {
+            updates.approvedDate = undefined;
+            updates.approvedVia = undefined;
+          }
           return { ...o, ...updates };
         }
         return o;
@@ -260,6 +275,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
     setInventory((prev) => [newItem, ...prev]);
     return newItem;
+  };
+
+  const approveBudget = (orderId: string, via: BudgetApprovalChannel) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? { ...o, status: "approved", approvedDate: new Date().toISOString(), approvedVia: via }
+          : o
+      )
+    );
   };
 
   const updateInventoryItem = (updated: InventoryItem) => {
@@ -358,6 +383,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
       addWorkOrder,
       updateWorkOrder,
       updateOrderStatus,
+      approveBudget,
       deleteWorkOrder,
       addInventoryItem,
       updateInventoryItem,

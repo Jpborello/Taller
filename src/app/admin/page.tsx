@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useWorkshop } from "@/context/WorkshopContext";
-import { formatCurrency, formatDate, formatPlate, ORDER_STATUS_MAP } from "@/lib/formatters";
-import { WorkOrder, Vehicle, Client } from "@/types";
+import { formatCurrency, formatDate, formatPlate, ORDER_STATUS_MAP, ORDER_STATUS_FLOW } from "@/lib/formatters";
+import { WorkOrder, Vehicle, Client, OrderStatus } from "@/types";
 import { WorkOrderModal } from "@/components/admin/WorkOrderModal";
 import { WorkOrderPrint } from "@/components/admin/WorkOrderPrint";
 import { WhatsAppModal } from "@/components/admin/WhatsAppModal";
@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Plus,
   Package,
+  CheckCircle2,
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -34,6 +35,7 @@ export default function AdminDashboardPage() {
     inventory,
     appointments,
     updateOrderStatus,
+    approveBudget,
     getClientById,
     getVehicleById,
   } = useWorkshop();
@@ -56,6 +58,7 @@ export default function AdminDashboardPage() {
   // Calculations
   const activeOrders = orders.filter((o) => o.status !== "delivered");
   const readyOrders = orders.filter((o) => o.status === "ready");
+  const awaitingApproval = orders.filter((o) => o.status === "budget_sent");
   const lowStockItems = inventory.filter((i) => i.currentStock <= i.minStock);
   const pendingAppointments = appointments.filter((a) => a.status === "pending");
 
@@ -71,6 +74,14 @@ export default function AdminDashboardPage() {
     const vehicle = getVehicleById(order.vehicleId);
     if (client) {
       setWaModalData({ client, vehicle, order });
+    }
+  };
+
+  // Moving an order to "budget sent" opens WhatsApp with the budget ready to send
+  const handleStatusChange = (order: WorkOrder, status: OrderStatus) => {
+    updateOrderStatus(order.id, status);
+    if (status === "budget_sent") {
+      handleOpenWa({ ...order, status });
     }
   };
 
@@ -214,6 +225,69 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Presupuestos esperando aprobación del cliente */}
+      {awaitingApproval.length > 0 && (
+        <div className="border border-yellow-400/30 bg-yellow-400/5 rounded-2xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-yellow-400/20 flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold uppercase text-yellow-300 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Esperando aprobación del cliente
+            </h3>
+            <span className="text-xs text-slate-400">
+              {awaitingApproval.length} {awaitingApproval.length === 1 ? "presupuesto" : "presupuestos"}
+            </span>
+          </div>
+          <ul className="divide-y divide-slate-800">
+            {awaitingApproval.map((order) => {
+              const client = getClientById(order.clientId);
+              const vehicle = getVehicleById(order.vehicleId);
+              return (
+                <li key={order.id} className="px-5 py-3.5 flex flex-col md:flex-row md:items-center gap-3 justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-mono text-[11px] text-slate-400">{order.orderNumber}</span>
+                      <span className="font-semibold text-white truncate">
+                        {vehicle ? `${vehicle.brand} ${vehicle.model}` : "Vehículo"}
+                      </span>
+                      {vehicle && (
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 bg-white text-slate-950 rounded-sm">
+                          {formatPlate(vehicle.licensePlate)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {client?.fullName}
+                      {order.budgetSentDate && <> · enviado el {formatDate(order.budgetSentDate)}</>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-display font-bold text-xl text-white mr-2">
+                      {formatCurrency(order.total)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenWa(order)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold flex items-center gap-1.5"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      Reenviar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => approveBudget(order.id, "Teléfono")}
+                      className="px-3 py-1.5 rounded-lg bg-lime-500 hover:bg-lime-400 text-slate-950 text-xs font-bold flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Aprobó por teléfono
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {/* Visual Pipeline / Kanban Strip */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 space-y-3">
         <div className="flex items-center justify-between">
@@ -226,10 +300,12 @@ export default function AdminDashboardPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {[
             { key: "received", label: "Recepcionados" },
             { key: "in_diagnosis", label: "En Diagnóstico" },
+            { key: "budget_sent", label: "Esperando Aprobación" },
+            { key: "approved", label: "Aprobados" },
             { key: "waiting_parts", label: "Esperando Repuestos" },
             { key: "in_repair", label: "En Reparación" },
             { key: "quality_control", label: "Control Calidad" },
@@ -345,16 +421,14 @@ export default function AdminDashboardPage() {
                     <td className="py-3.5 px-4">
                       <select
                         value={order.status}
-                        onChange={(e) => updateOrderStatus(order.id, e.target.value as any)}
+                        onChange={(e) => handleStatusChange(order, e.target.value as OrderStatus)}
                         className={`text-[11px] font-semibold px-2 py-1 rounded-lg border cursor-pointer focus:outline-hidden ${statusInfo.bgColor} ${statusInfo.textColor} ${statusInfo.borderColor} bg-slate-900`}
                       >
-                        <option value="received">Recepcionado</option>
-                        <option value="in_diagnosis">En Diagnóstico</option>
-                        <option value="waiting_parts">Esperando Repuestos</option>
-                        <option value="in_repair">En Reparación</option>
-                        <option value="quality_control">Control Calidad</option>
-                        <option value="ready">Listo para Retirar</option>
-                        <option value="delivered">Entregado</option>
+                        {ORDER_STATUS_FLOW.map((s) => (
+                          <option key={s} value={s}>
+                            {ORDER_STATUS_MAP[s].label}
+                          </option>
+                        ))}
                       </select>
                     </td>
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { WorkOrder, OrderItem, OrderStatus, Client, Vehicle } from "@/types";
 import { useWorkshop } from "@/context/WorkshopContext";
-import { formatCurrency, formatPlate } from "@/lib/formatters";
+import { formatCurrency, formatPlate, ORDER_STATUS_MAP, ORDER_STATUS_FLOW, isBudgetApproved, formatDate } from "@/lib/formatters";
 import { Plus, Trash2, Package, Wrench, ShieldCheck, AlertCircle } from "lucide-react";
 
 interface WorkOrderModalProps {
@@ -182,9 +182,23 @@ export function WorkOrderModal({
       return;
     }
 
+    // Stamp the budget trail when the status is set here instead of from the order list
+    const nowIso = new Date().toISOString();
+    const prevStatus = orderToEdit?.status;
+    const approved = isBudgetApproved(status);
+    const newlyApproved = approved && !orderToEdit?.approvedDate;
+    const budgetStamps = {
+      budgetSentDate:
+        status === "budget_sent" && prevStatus !== "budget_sent" ? nowIso : orderToEdit?.budgetSentDate,
+      // Moving back before approval drops the old approval
+      approvedDate: !approved ? undefined : newlyApproved ? nowIso : orderToEdit?.approvedDate,
+      approvedVia: !approved ? undefined : newlyApproved ? ("En persona" as const) : orderToEdit?.approvedVia,
+    };
+
     if (orderToEdit) {
       updateWorkOrder({
         ...orderToEdit,
+        ...budgetStamps,
         clientId,
         vehicleId,
         status,
@@ -208,6 +222,7 @@ export function WorkOrderModal({
       });
     } else {
       addWorkOrder({
+        ...budgetStamps,
         clientId,
         vehicleId,
         status,
@@ -303,14 +318,20 @@ export function WorkOrderModal({
               onChange={(e) => setStatus(e.target.value as OrderStatus)}
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 font-semibold"
             >
-              <option value="received">Recepcionado</option>
-              <option value="in_diagnosis">En Diagnóstico</option>
-              <option value="waiting_parts">Esperando Repuestos</option>
-              <option value="in_repair">En Reparación</option>
-              <option value="quality_control">Control de Calidad</option>
-              <option value="ready">Listo para Retirar</option>
-              <option value="delivered">Entregado</option>
+              {ORDER_STATUS_FLOW.map((s) => (
+                <option key={s} value={s}>
+                  {ORDER_STATUS_MAP[s].label}
+                </option>
+              ))}
             </select>
+            {orderToEdit?.approvedDate ? (
+              <p className="text-[11px] text-lime-400 mt-1.5">
+                ✓ Aprobado el {formatDate(orderToEdit.approvedDate)}
+                {orderToEdit.approvedVia && ` · vía ${orderToEdit.approvedVia}`}
+              </p>
+            ) : orderToEdit?.status === "budget_sent" ? (
+              <p className="text-[11px] text-yellow-300 mt-1.5">Esperando aprobación del cliente</p>
+            ) : null}
           </div>
 
           <div>

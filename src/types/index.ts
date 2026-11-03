@@ -1,6 +1,8 @@
 export type OrderStatus =
   | 'received'         // Recepcionado
   | 'in_diagnosis'     // En diagnóstico
+  | 'budget_sent'      // Presupuesto enviado, esperando aprobación del cliente
+  | 'approved'         // Presupuesto aprobado por el cliente
   | 'waiting_parts'    // Esperando repuestos
   | 'in_repair'        // En reparación
   | 'quality_control'  // Control de calidad
@@ -80,7 +82,12 @@ export interface WorkOrder {
   paymentStatus: 'Pendiente' | 'Parcial' | 'Pagado';
   warrantyMonths: number;
   customerSignature?: boolean;
+  budgetSentDate?: string;     // Cuándo se le envió el presupuesto al cliente
+  approvedDate?: string;       // Cuándo el cliente aprobó el presupuesto
+  approvedVia?: BudgetApprovalChannel;
 }
+
+export type BudgetApprovalChannel = 'WhatsApp' | 'Web' | 'Teléfono' | 'En persona';
 
 export interface InventoryItem {
   id: string;

@@ -84,9 +84,27 @@ export const ORDER_STATUS_MAP: Record<
     borderColor: "border-amber-500/30",
     description: "Escaneo computarizado y chequeo exhaustivo en bahía.",
   },
+  budget_sent: {
+    label: "Presupuesto Enviado",
+    step: 3,
+    color: "bg-yellow-400",
+    bgColor: "bg-yellow-400/10",
+    textColor: "text-yellow-300",
+    borderColor: "border-yellow-400/30",
+    description: "Diagnóstico terminado. Presupuesto enviado, esperando la aprobación del cliente.",
+  },
+  approved: {
+    label: "Presupuesto Aprobado",
+    step: 4,
+    color: "bg-lime-500",
+    bgColor: "bg-lime-500/10",
+    textColor: "text-lime-400",
+    borderColor: "border-lime-500/30",
+    description: "El cliente aprobó el presupuesto. Arrancamos con la reparación.",
+  },
   waiting_parts: {
     label: "Esperando Repuestos",
-    step: 3,
+    step: 5,
     color: "bg-orange-500",
     bgColor: "bg-orange-500/10",
     textColor: "text-orange-400",
@@ -95,7 +113,7 @@ export const ORDER_STATUS_MAP: Record<
   },
   in_repair: {
     label: "En Reparación",
-    step: 4,
+    step: 6,
     color: "bg-blue-500",
     bgColor: "bg-blue-500/10",
     textColor: "text-blue-400",
@@ -104,7 +122,7 @@ export const ORDER_STATUS_MAP: Record<
   },
   quality_control: {
     label: "Control de Calidad",
-    step: 5,
+    step: 7,
     color: "bg-purple-500",
     bgColor: "bg-purple-500/10",
     textColor: "text-purple-400",
@@ -113,7 +131,7 @@ export const ORDER_STATUS_MAP: Record<
   },
   ready: {
     label: "Listo para Retirar",
-    step: 6,
+    step: 8,
     color: "bg-emerald-500",
     bgColor: "bg-emerald-500/10",
     textColor: "text-emerald-400",
@@ -122,7 +140,7 @@ export const ORDER_STATUS_MAP: Record<
   },
   delivered: {
     label: "Entregado",
-    step: 7,
+    step: 9,
     color: "bg-zinc-600",
     bgColor: "bg-zinc-800/50",
     textColor: "text-zinc-400",
@@ -130,6 +148,24 @@ export const ORDER_STATUS_MAP: Record<
     description: "Vehículo entregado al cliente con garantía vigente.",
   },
 };
+
+/** Order statuses in workflow order, for selects, filters and pipelines. */
+export const ORDER_STATUS_FLOW: OrderStatus[] = [
+  "received",
+  "in_diagnosis",
+  "budget_sent",
+  "approved",
+  "waiting_parts",
+  "in_repair",
+  "quality_control",
+  "ready",
+  "delivered",
+];
+
+/** True once the customer has approved the budget (or the order is already past that point). */
+export function isBudgetApproved(status: OrderStatus): boolean {
+  return ORDER_STATUS_FLOW.indexOf(status) >= ORDER_STATUS_FLOW.indexOf("approved");
+}
 
 export const APPOINTMENT_STATUS_MAP: Record<
   AppointmentStatus,

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useWorkshop } from "@/context/WorkshopContext";
 import { WorkOrder, OrderStatus, Client, Vehicle } from "@/types";
-import { formatCurrency, formatDate, formatPlate, ORDER_STATUS_MAP } from "@/lib/formatters";
+import { formatCurrency, formatDate, formatPlate, ORDER_STATUS_MAP, ORDER_STATUS_FLOW } from "@/lib/formatters";
 import { WorkOrderModal } from "@/components/admin/WorkOrderModal";
 import { WorkOrderPrint } from "@/components/admin/WorkOrderPrint";
 import { WhatsAppModal } from "@/components/admin/WhatsAppModal";
@@ -75,6 +75,14 @@ export default function WorkOrdersPage() {
   const handleOpenPrint = (order: WorkOrder) => {
     setSelectedOrderForPrint(order);
     setIsPrintModalOpen(true);
+  };
+
+  // Moving an order to "budget sent" opens WhatsApp with the budget ready to send
+  const handleStatusChange = (order: WorkOrder, status: OrderStatus) => {
+    updateOrderStatus(order.id, status);
+    if (status === "budget_sent") {
+      handleOpenWa({ ...order, status });
+    }
   };
 
   const handleOpenWa = (order: WorkOrder) => {
@@ -152,6 +160,8 @@ export default function WorkOrdersPage() {
             { id: "all", label: "Todas las Órdenes" },
             { id: "received", label: "Recepcionadas" },
             { id: "in_diagnosis", label: "En Diagnóstico" },
+            { id: "budget_sent", label: "Esperando Aprobación" },
+            { id: "approved", label: "Aprobadas" },
             { id: "waiting_parts", label: "Esperando Repuestos" },
             { id: "in_repair", label: "En Reparación" },
             { id: "quality_control", label: "Control Calidad" },
@@ -224,19 +234,38 @@ export default function WorkOrdersPage() {
                     <label className="text-[11px] text-slate-400 hidden sm:inline">Estado:</label>
                     <select
                       value={order.status}
-                      onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                      onChange={(e) => handleStatusChange(order, e.target.value as OrderStatus)}
                       className={`text-xs font-semibold px-2.5 py-1.5 rounded-xl border cursor-pointer focus:outline-hidden ${statusInfo.bgColor} ${statusInfo.textColor} ${statusInfo.borderColor} bg-slate-950`}
                     >
-                      <option value="received">Recepcionado</option>
-                      <option value="in_diagnosis">En Diagnóstico</option>
-                      <option value="waiting_parts">Esperando Repuestos</option>
-                      <option value="in_repair">En Reparación</option>
-                      <option value="quality_control">Control de Calidad</option>
-                      <option value="ready">Listo para Retirar</option>
-                      <option value="delivered">Entregado</option>
+                      {ORDER_STATUS_FLOW.map((s) => (
+                        <option key={s} value={s}>
+                          {ORDER_STATUS_MAP[s].label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
+
+                {/* Budget approval trail */}
+                {(order.budgetSentDate || order.approvedDate) && (
+                  <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                    {order.budgetSentDate && (
+                      <span className="px-2 py-1 rounded-md bg-yellow-400/10 text-yellow-300 border border-yellow-400/20">
+                        Presupuesto enviado el {formatDate(order.budgetSentDate)}
+                      </span>
+                    )}
+                    {order.approvedDate ? (
+                      <span className="px-2 py-1 rounded-md bg-lime-500/10 text-lime-400 border border-lime-500/20 font-semibold">
+                        ✓ Aprobado el {formatDate(order.approvedDate)}
+                        {order.approvedVia && ` · vía ${order.approvedVia}`}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 rounded-md bg-slate-800 text-slate-400">
+                        Sin aprobación todavía
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Details Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">

@@ -5,6 +5,7 @@ import { useWorkshop } from "@/context/WorkshopContext";
 import { formatCurrency, formatDate, formatPlate, ORDER_STATUS_MAP } from "@/lib/formatters";
 import { OrderStatus } from "@/types";
 import { TRACK_PLATE_EVENT } from "@/components/landing/Hero";
+import confetti from "canvas-confetti";
 import {
   Search,
   Car,
@@ -19,7 +20,7 @@ import {
 } from "lucide-react";
 
 export function VehicleTracker() {
-  const { getVehicleByPlate, settings } = useWorkshop();
+  const { getVehicleByPlate, approveBudget, settings } = useWorkshop();
   const [plateInput, setPlateInput] = useState("AF452CD");
   const [searched, setSearched] = useState(true);
   // Derived on every render so the demo plate resolves once the context hydrates from localStorage
@@ -51,19 +52,27 @@ export function VehicleTracker() {
     setSearched(true);
   };
 
-  const STEPS: { key: OrderStatus; label: string; desc: string }[] = [
-    { key: "received", label: "Recepción", desc: "Ingreso verificado" },
-    { key: "in_diagnosis", label: "Diagnóstico", desc: "Escaneo computarizado" },
-    { key: "waiting_parts", label: "Repuestos", desc: "Piezas originales" },
-    { key: "in_repair", label: "En Bahía", desc: "Reparación activa" },
-    { key: "quality_control", label: "C. Calidad", desc: "Pruebas de ruta" },
-    { key: "ready", label: "Listo", desc: "Disponible p/ retiro" },
+  const STEPS: { key: string; statuses: OrderStatus[]; label: string; desc: string }[] = [
+    { key: "received", statuses: ["received"], label: "Recepción", desc: "Ingreso verificado" },
+    { key: "diagnosis", statuses: ["in_diagnosis"], label: "Diagnóstico", desc: "Escaneo computarizado" },
+    { key: "budget", statuses: ["budget_sent", "approved"], label: "Presupuesto", desc: "Tu aprobación" },
+    { key: "parts", statuses: ["waiting_parts"], label: "Repuestos", desc: "Piezas originales" },
+    { key: "repair", statuses: ["in_repair"], label: "En Bahía", desc: "Reparación activa" },
+    { key: "qc", statuses: ["quality_control"], label: "C. Calidad", desc: "Pruebas de ruta" },
+    { key: "ready", statuses: ["ready", "delivered"], label: "Listo", desc: "Disponible p/ retiro" },
   ];
 
   const activeOrder = result.orders[0];
   const currentStepIndex = activeOrder
-    ? STEPS.findIndex((s) => s.key === activeOrder.status)
+    ? STEPS.findIndex((s) => s.statuses.includes(activeOrder.status))
     : -1;
+  const awaitingApproval = activeOrder?.status === "budget_sent";
+
+  const handleApprove = () => {
+    if (!activeOrder) return;
+    approveBudget(activeOrder.id, "Web");
+    confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors: ["#ff6a13", "#ffffff", "#84cc16"] });
+  };
   const statusInfo = activeOrder
     ? ORDER_STATUS_MAP[activeOrder.status] || ORDER_STATUS_MAP.received
     : null;
@@ -135,7 +144,7 @@ export function VehicleTracker() {
                 onClick={() => handleQuickDemoClick("AD902KL")}
                 className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-500/50 text-slate-300 font-mono transition-colors"
               >
-                AD 902 KL (Cruze - Diagnóstico)
+                AD 902 KL (Cruze - Presupuesto)
               </button>
             </div>
           </form>
@@ -218,7 +227,7 @@ export function VehicleTracker() {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
                         {STEPS.map((step, idx) => {
                           const isCompleted = idx <= currentStepIndex;
                           const isCurrent = idx === currentStepIndex;
@@ -260,6 +269,80 @@ export function VehicleTracker() {
                           );
                         })}
                       </div>
+
+                      {/* Budget approval by the customer */}
+                      {awaitingApproval && (
+                        <div className="rounded-xl border-2 border-amber-500 bg-amber-500/5 overflow-hidden">
+                          <div className="px-4 py-3 bg-amber-500 text-slate-950 flex items-center justify-between gap-3">
+                            <span className="font-display font-extrabold uppercase text-lg leading-none">
+                              Tu presupuesto está listo
+                            </span>
+                            {activeOrder.budgetSentDate && (
+                              <span className="text-[11px] font-semibold">
+                                Enviado el {formatDate(activeOrder.budgetSentDate)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="p-4 space-y-4">
+                            <ul className="divide-y divide-slate-800 text-xs">
+                              {activeOrder.items.map((it) => (
+                                <li key={it.id} className="py-2 flex items-start justify-between gap-4">
+                                  <span className="text-slate-300">
+                                    {it.description}
+                                    {it.quantity > 1 && <span className="text-slate-500"> x{it.quantity}</span>}
+                                  </span>
+                                  <span className="font-mono text-white shrink-0">{formatCurrency(it.subtotal)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-slate-700">
+                              <div>
+                                <span className="text-[11px] uppercase tracking-wider text-slate-400 block">
+                                  Total con mano de obra y repuestos
+                                </span>
+                                <span className="font-display font-black text-4xl text-white leading-none">
+                                  {formatCurrency(activeOrder.total)}
+                                </span>
+                              </div>
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <a
+                                  href={`https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                                    `Hola, tengo una consulta sobre el presupuesto de la orden ${activeOrder.orderNumber} (patente ${result.vehicle.licensePlate})`
+                                  )}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-4 py-3 rounded-md border border-slate-600 text-slate-200 hover:bg-slate-800 text-xs font-semibold flex items-center justify-center gap-2"
+                                >
+                                  <Phone className="w-4 h-4" />
+                                  Tengo una consulta
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={handleApprove}
+                                  className="px-5 py-3 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 font-display font-bold uppercase tracking-wider text-base flex items-center justify-center gap-2"
+                                >
+                                  <CheckCircle2 className="w-5 h-5" />
+                                  Aprobar presupuesto
+                                </button>
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-slate-500">
+                              No arrancamos ningún trabajo sin tu aprobación. Si aprobás, te avisamos por WhatsApp
+                              cuando lleguen los repuestos.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeOrder.approvedDate && (
+                        <div className="px-4 py-3 rounded-xl bg-lime-500/10 border border-lime-500/30 text-xs text-lime-300 flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
+                          <span>
+                            Presupuesto aprobado el <strong>{formatDate(activeOrder.approvedDate)}</strong>
+                            {activeOrder.approvedVia && <> vía {activeOrder.approvedVia}</>}.
+                          </span>
+                        </div>
+                      )}
 
                       {/* Status explanation alert box */}
                       <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-start gap-3">

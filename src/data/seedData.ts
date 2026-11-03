@@ -366,6 +366,9 @@ export const SEED_WORK_ORDERS: WorkOrder[] = [
     clientId: "cli-2",
     vehicleId: "veh-2", // 208 AG119ZX
     status: "in_repair", // En reparación
+    budgetSentDate: "2026-03-02T11:40:00.000Z",
+    approvedDate: "2026-03-02T13:05:00.000Z",
+    approvedVia: "WhatsApp",
     entryDate: "2026-03-02T10:00:00.000Z",
     estimatedDeliveryDate: "2026-03-04T12:00:00.000Z",
     mileageAtEntry: 24300,
@@ -413,12 +416,13 @@ export const SEED_WORK_ORDERS: WorkOrder[] = [
     orderNumber: "OT-2026-0103",
     clientId: "cli-5",
     vehicleId: "veh-5", // Cruze AD902KL
-    status: "in_diagnosis", // En diagnóstico
+    status: "budget_sent", // Presupuesto enviado, esperando aprobación
     entryDate: "2026-03-03T08:15:00.000Z",
+    budgetSentDate: "2026-03-03T15:20:00.000Z",
     estimatedDeliveryDate: "2026-03-05T17:00:00.000Z",
     mileageAtEntry: 51200,
     problemDescription: "Testigo de Check Engine parpadea en aceleración fuerte. Pérdida de potencia momentánea en autopista.",
-    diagnosisNotes: "Scanner conectó código P0301 (Fallo de combustión en Cilindro 1). Se prueba bobina y bujías.",
+    diagnosisNotes: "Código P0301 (fallo de combustión en cilindro 1). Bobina Delphi con resistencia fuera de rango y bujías desgastadas. Se cambian bobina y juego de bujías.",
     internalNotes: "Revisar compresión de cilindros y resistencia de la bobina Delphi.",
     technicianName: "Esteban Quiroga (Especialista en Inyección)",
     items: [
@@ -430,11 +434,35 @@ export const SEED_WORK_ORDERS: WorkOrder[] = [
         unitPrice: 35000,
         subtotal: 35000,
       },
+      {
+        id: "item-302",
+        type: "part",
+        description: "Bobina de encendido Delphi GN10571 (Cruze 1.4T)",
+        quantity: 1,
+        unitPrice: 98000,
+        subtotal: 98000,
+      },
+      {
+        id: "item-303",
+        type: "part",
+        description: "Bujías NGK Laser Iridium (juego x4)",
+        quantity: 1,
+        unitPrice: 64000,
+        subtotal: 64000,
+      },
+      {
+        id: "item-304",
+        type: "labor",
+        description: "Mano de obra: reemplazo de bobina y bujías + borrado de códigos",
+        quantity: 1,
+        unitPrice: 28000,
+        subtotal: 28000,
+      },
     ],
-    subtotal: 35000,
+    subtotal: 225000,
     discount: 0,
     tax: 0,
-    total: 35000,
+    total: 225000,
     paymentStatus: "Pendiente",
     warrantyMonths: 3,
   },

@@ -8,6 +8,7 @@ export interface WhatsAppTemplateData {
   appointment?: Appointment;
   workshopName?: string;
   workshopPhone?: string;
+  trackingUrl?: string; // Landing tracker where the customer can approve the budget
 }
 
 export function cleanPhone(phone: string): string {
@@ -53,7 +54,11 @@ export const WHATSAPP_TEMPLATES = {
       `🔍 *Diagnóstico:* ${data.workOrder?.diagnosisNotes || data.workOrder?.problemDescription || "Revisión general"}\n` +
       itemsDetail +
       (total ? `\n💵 *Total estimado:* *${total}* (incluye mano de obra y repuestos)\n` : "") +
-      `\n¿Nos das el visto bueno para dar inicio a la reparación? ¡Aguardamos tu confirmación!`;
+      `\n¿Nos das el visto bueno para dar inicio a la reparación? Respondé este mensaje con un *OK*` +
+      (data.trackingUrl
+        ? ` o aprobalo vos mismo desde la web con tu patente:\n${data.trackingUrl}`
+        : ".") +
+      `\n\n¡Aguardamos tu confirmación!`;
   },
 
   APPOINTMENT_CONFIRMED: (data: WhatsAppTemplateData) => {

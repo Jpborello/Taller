@@ -41,6 +41,7 @@ export function WhatsAppModal({
       appointment,
       workshopName: settings.name,
       workshopPhone: settings.phone,
+      trackingUrl: `${window.location.origin}/#seguimiento`,
     };
 
     switch (templateType) {
